@@ -5,7 +5,8 @@
 // Default Initial State
 const DEFAULT_STATE = {
   user: {
-    name: "Alex",
+    name: "Vikashini Balasubramanian",
+    role: "Administrator",
     gender: "female",
     age: 28,
     height: 165,
@@ -675,7 +676,14 @@ function updateUI() {
 
   // --- Profile Snapshot ---
   document.getElementById("snapshotName").innerText = user.name;
-  document.getElementById("snapshotDiet").innerText = `${user.dietType} Diet`;
+  document.getElementById("snapshotDiet").innerText = user.role || `${user.dietType} Diet`;
+  
+  // Extract dynamic initials from username
+  const initials = user.name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2);
+  const avatar = document.querySelector(".user-profile-snapshot .avatar");
+  if (avatar) {
+    avatar.innerText = initials || "U";
+  }
 
   // --- Calorie / Macros Logging Calculations ---
   let eatenCalories = 0;
