@@ -1037,11 +1037,30 @@ function renderMealPlanTab() {
         `;
       }).join("");
 
+      const todayLog = state.mealLogs[state.selectedDate];
+      let isLogged = false;
+      if (todayLog && todayLog.meals[cat]) {
+        isLogged = todayLog.meals[cat].some(m => m.name.toLowerCase() === food.name.toLowerCase());
+      }
+      
+      const logButtonHtml = isLogged ? `
+        <span style="font-size: 11px; color: var(--color-primary); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; margin-left: 12px; cursor: default; user-select: none;">
+          <span>✓ Logged</span>
+        </span>
+      ` : `
+        <button class="btn btn-text btn-sm" onclick="logPlannedMealDirectly('${cat}', '${food.name.replace(/'/g, "\\'")}', ${food.calories}, ${food.protein}, ${food.carbs}, ${food.fats})" style="padding: 0; font-size: 11px; color: var(--color-accent); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; border: none; background: transparent; cursor: pointer; margin-left: 12px;">
+          <span>✓ Log Meal</span>
+        </button>
+      `;
+
       recipeHtml = `
         <div class="planned-recipe-collapsible" style="margin-top: 4px; width:100%;">
-          <button class="btn btn-text btn-sm" onclick="toggleRecipeDetails('${cat}')" id="btn-toggle-recipe-${cat}" style="padding: 0; font-size: 11px; color: var(--color-primary); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; border: none; background: transparent; cursor: pointer;">
-            <span>📖 View Recipe</span>
-          </button>
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <button class="btn btn-text btn-sm" onclick="toggleRecipeDetails('${cat}')" id="btn-toggle-recipe-${cat}" style="padding: 0; font-size: 11px; color: var(--color-primary); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; border: none; background: transparent; cursor: pointer;">
+              <span>📖 View Recipe</span>
+            </button>
+            ${logButtonHtml}
+          </div>
           <div id="recipe-details-${cat}" class="planned-recipe-details" style="display: none; margin-top: 8px; padding: 16px; background-color: var(--color-background); border: 1px solid var(--color-border); border-radius: 8px; font-size: 12px; line-height: 1.4; width:100%;">
             
             <div id="recipe-details-container-${cat}">
@@ -2588,4 +2607,40 @@ window.addAllSelectedRecipeIngredientsToInstamart = function(cat) {
     modal.classList.add("show");
     window.renderInstamartCartStep();
   }
+};
+
+window.logPlannedMealDirectly = function(cat, name, calories, protein, carbs, fats) {
+  if (!state.mealLogs[state.selectedDate]) {
+    state.mealLogs[state.selectedDate] = {
+      meals: {
+        "Breakfast": [],
+        "Morning Snack": [],
+        "Lunch": [],
+        "Evening Snack": [],
+        "Dinner": []
+      },
+      water: 0
+    };
+  }
+  
+  const todayLog = state.mealLogs[state.selectedDate];
+  const existing = todayLog.meals[cat].find(m => m.name.toLowerCase() === name.toLowerCase());
+  if (existing) {
+    alert(`"${name}" is already logged for ${cat} today!`);
+    return;
+  }
+  
+  todayLog.meals[cat].push({
+    name: name,
+    calories: parseInt(calories),
+    protein: parseFloat(protein),
+    carbs: parseFloat(carbs),
+    fats: parseFloat(fats),
+    loggedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  });
+  
+  saveState();
+  updateUI();
+  
+  alert(`Logged "${name}" for ${cat} successfully!`);
 };
