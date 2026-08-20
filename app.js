@@ -5,8 +5,7 @@
 // Default Initial State
 const DEFAULT_STATE = {
   user: {
-    name: "Vikashini Balasubramanian",
-    role: "Administrator",
+    name: "Alex",
     gender: "female",
     age: 28,
     height: 165,
@@ -497,18 +496,15 @@ let activeMealsSubTab = "meal-plan";
 function generateDailyMealPlan(day, force = false) {
   if (!state.weeklyMealPlans) state.weeklyMealPlans = {};
   
-  const categories = ["Breakfast", "Morning Snack", "Lunch", "Evening Snack", "Dinner"];
-  const hasAllCategories = state.weeklyMealPlans[day] && categories.every(cat => state.weeklyMealPlans[day][cat]);
-  
-  if (hasAllCategories && !force) return;
+  if (state.weeklyMealPlans[day] && !force) return;
 
-  const newPlan = state.weeklyMealPlans[day] || {};
+  const newPlan = {};
+  const categories = ["Breakfast", "Morning Snack", "Lunch", "Evening Snack", "Dinner"];
+
   categories.forEach(cat => {
-    if (!newPlan[cat] || force) {
-      const list = PLANNER_FOODS_DATABASE[cat];
-      const randomIndex = Math.floor(Math.random() * list.length);
-      newPlan[cat] = { ...list[randomIndex] };
-    }
+    const list = PLANNER_FOODS_DATABASE[cat];
+    const randomIndex = Math.floor(Math.random() * list.length);
+    newPlan[cat] = { ...list[randomIndex] };
   });
 
   state.weeklyMealPlans[day] = newPlan;
@@ -679,14 +675,7 @@ function updateUI() {
 
   // --- Profile Snapshot ---
   document.getElementById("snapshotName").innerText = user.name;
-  document.getElementById("snapshotDiet").innerText = user.role || `${user.dietType} Diet`;
-  
-  // Extract dynamic initials from username
-  const initials = user.name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2);
-  const avatar = document.querySelector(".user-profile-snapshot .avatar");
-  if (avatar) {
-    avatar.innerText = initials || "U";
-  }
+  document.getElementById("snapshotDiet").innerText = `${user.dietType} Diet`;
 
   // --- Calorie / Macros Logging Calculations ---
   let eatenCalories = 0;
@@ -969,13 +958,11 @@ function renderMealPlanTab() {
   const categories = ["Breakfast", "Morning Snack", "Lunch", "Evening Snack", "Dinner"];
 
   categories.forEach(cat => {
-    const food = plan ? plan[cat] : null;
-    if (!food) return;
-    
-    totalCal += food.calories || 0;
-    totalP += food.protein || 0;
-    totalC += food.carbs || 0;
-    totalF += food.fats || 0;
+    const food = plan[cat];
+    totalCal += food.calories;
+    totalP += food.protein;
+    totalC += food.carbs;
+    totalF += food.fats;
 
     const item = document.createElement("div");
     item.className = "planned-slot-item";
@@ -1042,30 +1029,11 @@ function renderMealPlanTab() {
         `;
       }).join("");
 
-      const todayLog = state.mealLogs[state.selectedDate];
-      let isLogged = false;
-      if (todayLog && todayLog.meals[cat]) {
-        isLogged = todayLog.meals[cat].some(m => m.name.toLowerCase() === food.name.toLowerCase());
-      }
-      
-      const logButtonHtml = isLogged ? `
-        <span style="font-size: 11px; color: var(--color-primary); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; margin-left: 12px; cursor: default; user-select: none;">
-          <span>✓ Logged</span>
-        </span>
-      ` : `
-        <button class="btn btn-text btn-sm" onclick="logPlannedMealDirectly('${cat}', '${food.name.replace(/'/g, "\\'")}', ${food.calories}, ${food.protein}, ${food.carbs}, ${food.fats})" style="padding: 0; font-size: 11px; color: var(--color-accent); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; border: none; background: transparent; cursor: pointer; margin-left: 12px;">
-          <span>✓ Log Meal</span>
-        </button>
-      `;
-
       recipeHtml = `
         <div class="planned-recipe-collapsible" style="margin-top: 4px; width:100%;">
-          <div style="display: flex; align-items: center; gap: 4px;">
-            <button class="btn btn-text btn-sm" onclick="toggleRecipeDetails('${cat}')" id="btn-toggle-recipe-${cat}" style="padding: 0; font-size: 11px; color: var(--color-primary); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; border: none; background: transparent; cursor: pointer;">
-              <span>📖 View Recipe</span>
-            </button>
-            ${logButtonHtml}
-          </div>
+          <button class="btn btn-text btn-sm" onclick="toggleRecipeDetails('${cat}')" id="btn-toggle-recipe-${cat}" style="padding: 0; font-size: 11px; color: var(--color-primary); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; border: none; background: transparent; cursor: pointer;">
+            <span>📖 View Recipe</span>
+          </button>
           <div id="recipe-details-${cat}" class="planned-recipe-details" style="display: none; margin-top: 8px; padding: 16px; background-color: var(--color-background); border: 1px solid var(--color-border); border-radius: 8px; font-size: 12px; line-height: 1.4; width:100%;">
             
             <div id="recipe-details-container-${cat}">
@@ -1178,8 +1146,7 @@ function renderDashboardWidgets(todayLog) {
   const categories = ["Breakfast", "Morning Snack", "Lunch", "Evening Snack", "Dinner"];
 
   categories.forEach(cat => {
-    const plannedFood = plan ? plan[cat] : null;
-    if (!plannedFood) return;
+    const plannedFood = plan[cat];
     const isLogged = todayLog.meals[cat] && todayLog.meals[cat].some(item => item.name === plannedFood.name);
     
     const div = document.createElement("div");
@@ -2613,40 +2580,4 @@ window.addAllSelectedRecipeIngredientsToInstamart = function(cat) {
     modal.classList.add("show");
     window.renderInstamartCartStep();
   }
-};
-
-window.logPlannedMealDirectly = function(cat, name, calories, protein, carbs, fats) {
-  if (!state.mealLogs[state.selectedDate]) {
-    state.mealLogs[state.selectedDate] = {
-      meals: {
-        "Breakfast": [],
-        "Morning Snack": [],
-        "Lunch": [],
-        "Evening Snack": [],
-        "Dinner": []
-      },
-      water: 0
-    };
-  }
-  
-  const todayLog = state.mealLogs[state.selectedDate];
-  const existing = todayLog.meals[cat].find(m => m.name.toLowerCase() === name.toLowerCase());
-  if (existing) {
-    alert(`"${name}" is already logged for ${cat} today!`);
-    return;
-  }
-  
-  todayLog.meals[cat].push({
-    name: name,
-    calories: parseInt(calories),
-    protein: parseFloat(protein),
-    carbs: parseFloat(carbs),
-    fats: parseFloat(fats),
-    loggedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  });
-  
-  saveState();
-  updateUI();
-  
-  alert(`Logged "${name}" for ${cat} successfully!`);
 };
