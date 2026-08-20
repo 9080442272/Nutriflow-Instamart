@@ -497,15 +497,18 @@ let activeMealsSubTab = "meal-plan";
 function generateDailyMealPlan(day, force = false) {
   if (!state.weeklyMealPlans) state.weeklyMealPlans = {};
   
-  if (state.weeklyMealPlans[day] && !force) return;
-
-  const newPlan = {};
   const categories = ["Breakfast", "Morning Snack", "Lunch", "Evening Snack", "Dinner"];
+  const hasAllCategories = state.weeklyMealPlans[day] && categories.every(cat => state.weeklyMealPlans[day][cat]);
+  
+  if (hasAllCategories && !force) return;
 
+  const newPlan = state.weeklyMealPlans[day] || {};
   categories.forEach(cat => {
-    const list = PLANNER_FOODS_DATABASE[cat];
-    const randomIndex = Math.floor(Math.random() * list.length);
-    newPlan[cat] = { ...list[randomIndex] };
+    if (!newPlan[cat] || force) {
+      const list = PLANNER_FOODS_DATABASE[cat];
+      const randomIndex = Math.floor(Math.random() * list.length);
+      newPlan[cat] = { ...list[randomIndex] };
+    }
   });
 
   state.weeklyMealPlans[day] = newPlan;
@@ -966,11 +969,13 @@ function renderMealPlanTab() {
   const categories = ["Breakfast", "Morning Snack", "Lunch", "Evening Snack", "Dinner"];
 
   categories.forEach(cat => {
-    const food = plan[cat];
-    totalCal += food.calories;
-    totalP += food.protein;
-    totalC += food.carbs;
-    totalF += food.fats;
+    const food = plan ? plan[cat] : null;
+    if (!food) return;
+    
+    totalCal += food.calories || 0;
+    totalP += food.protein || 0;
+    totalC += food.carbs || 0;
+    totalF += food.fats || 0;
 
     const item = document.createElement("div");
     item.className = "planned-slot-item";
@@ -1173,7 +1178,8 @@ function renderDashboardWidgets(todayLog) {
   const categories = ["Breakfast", "Morning Snack", "Lunch", "Evening Snack", "Dinner"];
 
   categories.forEach(cat => {
-    const plannedFood = plan[cat];
+    const plannedFood = plan ? plan[cat] : null;
+    if (!plannedFood) return;
     const isLogged = todayLog.meals[cat] && todayLog.meals[cat].some(item => item.name === plannedFood.name);
     
     const div = document.createElement("div");
